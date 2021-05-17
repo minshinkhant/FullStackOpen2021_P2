@@ -56,12 +56,9 @@ After finishing this exercise your application should look something like this:
 
 Note the use of the React developer tools extension in the picture above!
 
-```
 NB:
-
-    you can use the person's name as value of the key property
-    remember to prevent the default action of submitting HTML forms!
-```
+you can use the person's name as value of    the key property
+remember to prevent the default action of submitting HTML forms!
 
 # 2.7: The Phonebook Step2
 
