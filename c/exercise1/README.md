@@ -1,70 +1,114 @@
-# Getting Started with Create React App
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# Exercises 2.11.-2.14.
+## 2.11: The Phonebook Step6
 
-## Available Scripts
+We continue with developing the phonebook. Store the initial state of the application in the file db.json, which should be placed in the root of the project.
+```
+{
+  "persons":[
+    { 
+      "name": "Arto Hellas", 
+      "number": "040-123456",
+      "id": 1
+    },
+    { 
+      "name": "Ada Lovelace", 
+      "number": "39-44-5323523",
+      "id": 2
+    },
+    { 
+      "name": "Dan Abramov", 
+      "number": "12-43-234345",
+      "id": 3
+    },
+    { 
+      "name": "Mary Poppendieck", 
+      "number": "39-23-6423122",
+      "id": 4
+    }
+  ]
+}
+```
 
-In the project directory, you can run:
+Start json-server on port 3001 and make sure that the server returns the list of people by going to the address http://localhost:3001/persons in the browser.
 
-### `npm start`
+If you receive the following error message:
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+```
+events.js:182
+      throw er; // Unhandled 'error' event
+      ^
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+Error: listen EADDRINUSE 0.0.0.0:3001
+    at Object._errnoException (util.js:1019:11)
+    at _exceptionWithHostPort (util.js:1041:20)
+```
 
-### `npm test`
+it means that port 3001 is already in use by another application, e.g. in use by an already running json-server. Close the other application, or change the port in case that doesn't work.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Modify the application such that the initial state of the data is fetched from the server using the axios-library. Complete the fetching with an Effect hook.
 
-### `npm run build`
+## 2.12* Data for countries, step1
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+The API https://restcountries.eu provides data for different countries in a machine-readable format, a so-called REST API.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Create an application, in which one can look at data of various countries. The application should probably get the data from the endpoint all.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+The user interface is very simple. The country to be shown is found by typing a search query into the search field.
 
-### `npm run eject`
+If there are too many (over 10) countries that match the query, then the user is prompted to make their query more specific:
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+**fullstack content(image)**
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+If there are ten or fewer countries, but more than one, then all countries matching the query are shown:
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+**fullstack content(image)**
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+When there is only one country matching the query, then the basic data of the country, its flag and the languages spoken there, are shown:
 
-## Learn More
+**fullstack content(image)**
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+NB: It is enough that your application works for most of the countries. Some countries, like Sudan, can be hard to support, since the name of the country is part of the name of another country, South Sudan. You need not to worry about these edge cases.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+WARNING create-react-app will automatically turn your project into a git-repository unless you create your application inside of an existing git repository. Most likely you do not want each of your projects to be a separate repository, so simply run the rm -rf .git command at the root of your application.
 
-### Code Splitting
+## 2.13*: Data for countries, step2
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+There is still a lot to do in this part, so don't get stuck on this exercise!
 
-### Analyzing the Bundle Size
+Improve on the application in the previous exercise, such that when the names of multiple countries are shown on the page there is a button next to the name of the country, which when pressed shows the view for that country:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+**fullstack content(image)**
 
-### Making a Progressive Web App
+In this exercise it is also enough that your application works for most of the countries. Countries whose name appears in the name of another country, like Sudan, can be ignored.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## 2.14*: Data for countries, step3
 
-### Advanced Configuration
+There is still a lot to do in this part, so don't get stuck on this exercise!
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+Add to the view showing the data of a single country, the weather report for the capital of that country. There are dozens of providers for weather data. I used https://weatherstack.com/.
 
-### Deployment
+**fullstack content(image)**
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+NB: In some browsers (such as Firefox) weatherstack API sends an error response, which indicates that HTTPS encryption is not supported, although the request URL starts with http://. This issue can be fixed by completing the exercise using Chrome.
 
-### `npm run build` fails to minify
+NB: You need an api-key to use almost every weather service. Do not save the api-key to source control! Nor hardcode the api-key to your source code. Instead use an environment variable to save the key.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Assuming the api-key is t0p53cr3t4p1k3yv4lu3, when the application is started like so:
+```
+REACT_APP_API_KEY='t0p53cr3t4p1k3yv4lu3' npm start // For Linux/macOS Bash
+($env:REACT_APP_API_KEY='t0p53cr3t4p1k3yv4lu3') -and (npm start) // For Windows PowerShell
+set REACT_APP_API_KEY='t0p53cr3t4p1k3yv4lu3' && npm start // For Windows cmd.exe
+```
+you can access the value of the key from the process.env object:
+```
+const api_key = process.env.REACT_APP_API_KEY
+// variable api_key has now the value set in startup
+```
+Note that if you created the application using npx create-react-app ... and you want to use a different name for your environment variable then the environment variable name must still begin with REACT_APP_. You can also use a .env file rather than defining it on the command line each time by creating a file entitled '.env' in the root of the project and adding the following.
+```
+# .env
+
+REACT_APP_API_KEY=t0p53cr3t4p1k3yv4lu3
+```
+Note that you will need to restart the server to apply the changes.

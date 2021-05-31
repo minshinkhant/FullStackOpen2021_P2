@@ -39,5 +39,6 @@ const App = () => {
     </div>
   )
 }
-
+//have a issue with updating useEffect on CountryDetail accessing weatherAPI with different country
+//might be the useEffect params is not updating/ not re-randering with the updated params(country.capital)
 export default App;
