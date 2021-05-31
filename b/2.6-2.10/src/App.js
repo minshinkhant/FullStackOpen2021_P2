@@ -26,7 +26,7 @@ const App = () => {
     setNewFilter(event.target.value)
   }
 
-  const filterpersons = persons.filter(person => {
+  const filterPersons = persons.filter(person => {
     return person.name.toLowerCase().includes(newFilter.toLowerCase());
   })
 
@@ -57,7 +57,7 @@ const App = () => {
         newNumber={newNumber} handleNumberChange={handleNumberChange}
       />
       <h2>Numbers</h2>
-      <Persons filterpersons={filterpersons} />
+      <Persons filterPersons={filterPersons} />
     </div>
   )
 }
