@@ -1,70 +1,200 @@
-# Getting Started with Create React App
+# Altering data in server #
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+When creating notes in our application, we would naturally want to store them in some backend server. The json-server package claims to be a so-called REST or RESTful API in its documentation:
+```
+    Get a full fake REST API with zero coding in less than 30 seconds (seriously)
+```
+The json-server does not exactly match the description provided by the textbook definition of a REST API, but neither do most other APIs claiming to be RESTful.
 
-## Available Scripts
+We will take a closer look at REST in the next part of the course, but it's important to familiarize ourselves at this point with some of the conventions used by json-server and REST APIs in general. In particular, we will be taking a look at the conventional use of routes, aka URLs and HTTP request types, in REST.
+## REST ##
 
-In the project directory, you can run:
+In REST terminology, we refer to individual data objects, such as the notes in our application, as resources. Every resource has a unique address associated with it - its URL. According to a general convention used by json-server, we would be able to locate an individual note at the resource URL notes/3, where 3 is the id of the resource. The notes url, on the other hand, would point to a resource collection containing all the notes.
 
-### `npm start`
+Resources are fetched from the server with HTTP GET requests. For instance, an HTTP GET request to the URL notes/3 will return the note that has the id number 3. An HTTP GET request to the notes URL would return a list of all notes.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+Creating a new resource for storing a note is done by making an HTTP POST request to the notes URL according to the REST convention that the json-server adheres to. The data for the new note resource is sent in the body of the request.
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+json-server requires all data to be sent in JSON format. What this means in practice is that the data must be a correctly formatted string, and that the request must contain the Content-Type request header with the value application/json.
+## Sending Data to the Server ##
 
-### `npm test`
+Let's make the following changes to the event handler responsible for creating a new note:
+```
+addNote = event => {
+  event.preventDefault()
+  const noteObject = {
+    content: newNote,
+    date: new Date(),
+    important: Math.random() < 0.5,
+  }
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+  axios    .post('http://localhost:3001/notes', noteObject)    .then(response => {      console.log(response)    })}
+```
+We create a new object for the note but omit the id property, since it's better to let the server generate ids for our resources!
 
-### `npm run build`
+The object is sent to the server using the axios post method. The registered event handler logs the response that is sent back from the server to the console.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+When we try to create a new note, the following output pops up in the console:
+**fullstack content (image)**
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+The newly created note resource is stored in the value of the data property of the response object.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Sometimes it can be useful to inspect HTTP requests in the Network tab of Chrome developer tools, which was used heavily at the beginning of part 0:
+**fullstack content(image)**
 
-### `npm run eject`
+We can use the inspector to check that the headers sent in the POST request are what we expected them to be, and that their values are correct.
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+Since the data we sent in the POST request was a JavaScript object, axios automatically knew to set the appropriate application/json value for the Content-Type header.
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+The new note is not rendered to the screen yet. This is because we did not update the state of the App component when we created the new note. Let's fix this:
+```
+addNote = event => {
+  event.preventDefault()
+  const noteObject = {
+    content: newNote,
+    date: new Date(),
+    important: Math.random() > 0.5,
+  }
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+  axios
+    .post('http://localhost:3001/notes', noteObject)
+    .then(response => {
+      setNotes(notes.concat(response.data))      setNewNote('')    })
+}
+```
+The new note returned by the backend server is added to the list of notes in our application's state in the customary way of using the setNotes function and then resetting the note creation form. An important detail to remember is that the concat method does not change the component's original state, but instead creates a new copy of the list.
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+Once the data returned by the server starts to have an effect on the behavior of our web applications, we are immediately faced with a whole new set of challenges arising from, for instance, the asynchronicity of communication. This necessitates new debugging strategies, console logging and other means of debugging become increasingly more important. We must also develop a sufficient understanding of the principles of both the JavaScript runtime and React components. Guessing won't be enough.
 
-## Learn More
+It's beneficial to inspect the state of the backend server, e.g. through the browser:
+**fullstack content(image)**
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+This makes it possible to verify that all the data we intended to send was actually received by the server.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+In the next part of the course we will learn to implement our own logic in the backend. We will then take a closer look at tools like Postman that helps us to debug our server applications. However, inspecting the state of the json-server through the browser is sufficient for our current needs.
 
-### Code Splitting
+    NB: In the current version of our application the browser adds the creation date property to the note. Since the clock of the machine running the browser can be wrongly configured, it's much wiser to let the backend server generate this timestamp for us. This is in fact what we will do in the next part of the course.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+The code for the current state of our application can be found in the part2-5 branch on GitHub.
+## Changing the Importance of Notes ##
 
-### Analyzing the Bundle Size
+Let's add a button to every note that can be used for toggling its importance.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+We make the following changes to the Note component:
+```
+const Note = ({ note, toggleImportance }) => {
+  const label = note.important
+    ? 'make not important' : 'make important'
 
-### Making a Progressive Web App
+  return (
+    <li>
+      {note.content} 
+      <button onClick={toggleImportance}>{label}</button>
+    </li>
+  )
+}
+```
+We add a button to the component and assign its event handler as the toggleImportance function passed in the component's props.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+The App component defines an initial version of the toggleImportanceOf event handler function and passes it to every Note component:
+```
+const App = () => {
+  const [notes, setNotes] = useState([]) 
+  const [newNote, setNewNote] = useState('')
+  const [showAll, setShowAll] = useState(true)
 
-### Advanced Configuration
+  // ...
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+  const toggleImportanceOf = (id) => {    console.log('importance of ' + id + ' needs to be toggled')  }
+  // ...
 
-### Deployment
+  return (
+    <div>
+      <h1>Notes</h1>
+      <div>
+        <button onClick={() => setShowAll(!showAll)}>
+          show {showAll ? 'important' : 'all' }
+        </button>
+      </div>      
+      <ul>
+        {notesToShow.map((note, i) => 
+          <Note
+            key={i}
+            note={note} 
+            toggleImportance={() => toggleImportanceOf(note.id)}          />
+        )}
+      </ul>
+      // ...
+    </div>
+  )
+}
+```
+Notice how every note receives its own unique event handler function, since the id of every note is unique.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+E.g. if note.id is 3, the event handler function returned by toggleImportance(note.id) will be:
+```
+() => { console.log('importance of 3 needs to be toggled') }
+```
+A short reminder here. The string printed by the event handler is defined in Java-like manner by adding the strings:
+```
+console.log('importance of ' + id + ' needs to be toggled')
+```
+The template string syntax added in ES6 can be used to write similar strings in a much nicer way:
+```
+console.log(`importance of ${id} needs to be toggled`)
+```
+We can now use the "dollar-bracket"-syntax to add parts to the string that will evaluate JavaScript expressions, e.g. the value of a variable. Note that the quotation marks used in template strings differ from the quotation marks used in regular JavaScript strings.
 
-### `npm run build` fails to minify
+Individual notes stored in the json-server backend can be modified in two different ways by making HTTP requests to the note's unique URL. We can either replace the entire note with an HTTP PUT request, or only change some of the note's properties with an HTTP PATCH request.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+The final form of the event handler function is the following:
+```
+const toggleImportanceOf = id => {
+  const url = `http://localhost:3001/notes/${id}`
+  const note = notes.find(n => n.id === id)
+  const changedNote = { ...note, important: !note.important }
+
+  axios.put(url, changedNote).then(response => {
+    setNotes(notes.map(note => note.id !== id ? note : response.data))
+  })
+}
+```
+Almost every line of code in the function body contains important details. The first line defines the unique url for each note resource based on its id.
+
+The array find method is used to find the note we want to modify, and we then assign it to the note variable.
+
+After this we create a new object that is an exact copy of the old note, apart from the important property.
+
+The code for creating the new object that uses the object spread syntax may seem a bit strange at first:
+```
+const changedNote = { ...note, important: !note.important }
+```
+In practice { ...note } creates a new object with copies of all the properties from the note object. When we add properties inside the curly braces after the spreaded object, e.g. { ...note, important: true }, then the value of the important property of the new object will be true. In our example the important property gets the negation of its previous value in the original object.
+
+There's a few things to point out. Why did we make a copy of the note object we wanted to modify, when the following code also appears to work?
+```
+const note = notes.find(n => n.id === id)
+note.important = !note.important
+
+axios.put(url, note).then(response => {
+  // ...
+```
+This is not recommended because the variable note is a reference to an item in the notes array in the component's state, and as we recall we must never mutate state directly in React.
+
+It's also worth noting that the new object changedNote is only a so-called shallow copy, meaning that the values of the new object are the same as the values of the old object. If the values of the old object were objects themselves, then the copied values in new object would reference the same objects that were in the old object.
+
+The new note is then sent with a PUT request to the backend where it will replace the old object.
+
+The callback function sets the component's notes state to a new array that contains all the items from the previous notes array, except for the old note which is replaced by the updated version of it returned by the server:
+```
+axios.put(url, changedNote).then(response => {
+  setNotes(notes.map(note => note.id !== id ? note : response.data))
+})
+
+This is accomplished with the map method:
+
+notes.map(note => note.id !== id ? note : response.data)
+```
+The map method creates a new array by mapping every item from the old array into an item in the new array. In our example, the new array is created conditionally so that if note.id !== id is true, we simply copy the item from the old array into the new array. If the condition is false, then the note object returned by the server is added to the array instead.
+
+This map trick may seem a bit strange at first, but it's worth spending some time wrapping your head around it. We will be using this method many times throughout the course.
