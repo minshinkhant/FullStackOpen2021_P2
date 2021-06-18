@@ -76,6 +76,7 @@ In the next part of the course we will learn to implement our own logic in the b
     NB: In the current version of our application the browser adds the creation date property to the note. Since the clock of the machine running the browser can be wrongly configured, it's much wiser to let the backend server generate this timestamp for us. This is in fact what we will do in the next part of the course.
 
 The code for the current state of our application can be found in the part2-5 branch on GitHub.
+
 ## Changing the Importance of Notes ##
 
 Let's add a button to every note that can be used for toggling its importance.
@@ -198,3 +199,346 @@ notes.map(note => note.id !== id ? note : response.data)
 The map method creates a new array by mapping every item from the old array into an item in the new array. In our example, the new array is created conditionally so that if note.id !== id is true, we simply copy the item from the old array into the new array. If the condition is false, then the note object returned by the server is added to the array instead.
 
 This map trick may seem a bit strange at first, but it's worth spending some time wrapping your head around it. We will be using this method many times throughout the course.
+
+## Extracting Communication with the Backend into a Separate Module ##
+
+The App component has become somewhat bloated after adding the code for communicating with the backend server. In the spirit of the single responsibility principle, we deem it wise to extract this communication into its own module.
+
+Let's create a src/services directory and add a file there called notes.js:
+```
+import axios from 'axios'
+const baseUrl = 'http://localhost:3001/notes'
+
+const getAll = () => {
+  return axios.get(baseUrl)
+}
+
+const create = newObject => {
+  return axios.post(baseUrl, newObject)
+}
+
+const update = (id, newObject) => {
+  return axios.put(`${baseUrl}/${id}`, newObject)
+}
+
+export default { 
+  getAll: getAll, 
+  create: create, 
+  update: update 
+}
+```
+The module returns an object that has three functions (getAll, create, and update) as its properties that deal with notes. The functions directly return the promises returned by the axios methods.
+
+The App component uses import to get access to the module:
+```
+import noteService from './services/notes'
+const App = () => {
+```
+The functions of the module can be used directly with the imported variable noteService as follows:
+```
+const App = () => {
+  // ...
+
+  useEffect(() => {
+    noteService      .getAll()      .then(response => {        setNotes(response.data)      })  }, [])
+
+  const toggleImportanceOf = id => {
+    const note = notes.find(n => n.id === id)
+    const changedNote = { ...note, important: !note.important }
+
+    noteService      .update(id, changedNote)      .then(response => {        setNotes(notes.map(note => note.id !== id ? note : response.data))      })  }
+
+  const addNote = (event) => {
+    event.preventDefault()
+    const noteObject = {
+      content: newNote,
+      date: new Date().toISOString(),
+      important: Math.random() > 0.5
+    }
+
+    noteService      .create(noteObject)      .then(response => {        setNotes(notes.concat(response.data))        setNewNote('')      })  }
+
+  // ...
+}
+
+export default App
+```
+We could take our implementation a step further. When the App component uses the functions, it receives an object that contains the entire response for the HTTP request:
+```
+noteService
+  .getAll()
+  .then(response => {
+    setNotes(response.data)
+  })
+```
+The App component only uses the response.data property of the response object.
+
+The module would be much nicer to use if, instead of the entire HTTP response, we would only get the response data. Using the module would then look like this:
+```
+noteService
+  .getAll()
+  .then(initialNotes => {
+    setNotes(initialNotes)
+  })
+```
+We can achieve this by changing the code in the module as follows (the current code contains some copy-paste, but we will tolerate that for now):
+```
+import axios from 'axios'
+const baseUrl = 'http://localhost:3001/notes'
+
+const getAll = () => {
+  const request = axios.get(baseUrl)
+  return request.then(response => response.data)
+}
+
+const create = newObject => {
+  const request = axios.post(baseUrl, newObject)
+  return request.then(response => response.data)
+}
+
+const update = (id, newObject) => {
+  const request = axios.put(`${baseUrl}/${id}`, newObject)
+  return request.then(response => response.data)
+}
+
+export default { 
+  getAll: getAll, 
+  create: create, 
+  update: update 
+}
+```
+We no longer return the promise returned by axios directly. Instead, we assign the promise to the request variable and call its then method:
+```
+const getAll = () => {
+  const request = axios.get(baseUrl)
+  return request.then(response => response.data)
+}
+
+The last row in our function is simply a more compact expression of the same code as shown below:
+
+const getAll = () => {
+  const request = axios.get(baseUrl)
+  return request.then(response => {    return response.data  })}
+```
+The modified getAll function still returns a promise, as the then method of a promise also returns a promise.
+
+After defining the parameter of the then method to directly return response.data, we have gotten the getAll function to work like we wanted it to. When the HTTP request is successful, the promise returns the data sent back in the response from the backend.
+
+We have to update the App component to work with the changes made to our module. We have to fix the callback functions given as parameters to the noteService object's methods, so that they use the directly returned response data:
+```
+const App = () => {
+  // ...
+
+  useEffect(() => {
+    noteService
+      .getAll()
+      .then(initialNotes => {        setNotes(initialNotes)      })
+  }, [])
+
+  const toggleImportanceOf = id => {
+    const note = notes.find(n => n.id === id)
+    const changedNote = { ...note, important: !note.important }
+
+    noteService
+      .update(id, changedNote)
+      .then(returnedNote => {        setNotes(notes.map(note => note.id !== id ? note : returnedNote))      })
+  }
+
+  const addNote = (event) => {
+    event.preventDefault()
+    const noteObject = {
+      content: newNote,
+      date: new Date().toISOString(),
+      important: Math.random() > 0.5
+    }
+
+    noteService
+      .create(noteObject)
+      .then(returnedNote => {        setNotes(notes.concat(returnedNote))        setNewNote('')
+      })
+  }
+
+  // ...
+}
+```
+This is all quite complicated and attempting to explain it may just make it harder to understand. The internet is full of material discussing the topic, such as this one.
+
+The "Async and performance" book from the You do not know JS book series explains the topic well, but the explanation is many pages long.
+
+Promises are central to modern JavaScript development and it is highly recommended to invest a reasonable amount of time into understanding them.
+
+## Cleaner Syntax for Defining Object Literals ##
+
+The module defining note related services currently exports an object with the properties getAll, create and update that are assigned to functions for handling notes.
+
+The module definition was:
+```
+import axios from 'axios'
+const baseUrl = 'http://localhost:3001/notes'
+
+const getAll = () => {
+  const request = axios.get(baseUrl)
+  return request.then(response => response.data)
+}
+
+const create = newObject => {
+  const request = axios.post(baseUrl, newObject)
+  return request.then(response => response.data)
+}
+
+const update = (id, newObject) => {
+  const request = axios.put(`${baseUrl}/${id}`, newObject)
+  return request.then(response => response.data)
+}
+
+export default { 
+  getAll: getAll, 
+  create: create, 
+  update: update 
+}
+```
+The module exports the following, rather peculiar looking, object:
+```
+{ 
+  getAll: getAll, 
+  create: create, 
+  update: update 
+}
+```
+The labels to the left of the colon in the object definition are the keys of the object, whereas the ones to the right of it are variables that are defined inside of the module.
+
+Since the names of the keys and the assigned variables are the same, we can write the object definition with more compact syntax:
+```
+{ 
+  getAll, 
+  create, 
+  update 
+}
+```
+As a result the module definition gets simplified into the following form:
+```
+import axios from 'axios'
+const baseUrl = 'http://localhost:3001/notes'
+
+const getAll = () => {
+  const request = axios.get(baseUrl)
+  return request.then(response => response.data)
+}
+
+const create = newObject => {
+  const request = axios.post(baseUrl, newObject)
+  return request.then(response => response.data)
+}
+
+const update = (id, newObject) => {
+  const request = axios.put(`${baseUrl}/${id}`, newObject)
+  return request.then(response => response.data)
+}
+
+export default { getAll, create, update }
+```
+In defining the object using this shorter notation, we make use of a new feature that was introduced to JavaScript through ES6, enabling a slightly more compact way of defining objects using variables.
+
+To demonstrate this feature, let's consider a situation where we have the following values assigned to variables:
+```
+const name = 'Leevi'
+const age = 0
+```
+In older versions of JavaScript we had to define an object like this:
+```
+const person = {
+  name: name,
+  age: age
+}
+```
+However, since both the property fields and the variable names in the object are the same, it's enough to simply write the following in ES6 JavaScript:
+```
+const person = { name, age }
+```
+The result is identical for both expressions. They both create an object with a name property with the value Leevi and an age property with the value 0.
+
+## Promises and Errors ##
+
+If our application allowed users to delete notes, we could end up in a situation where a user tries to change the importance of a note that has already been deleted from the system.
+
+Let's simulate this situation by making the getAll function of the note service return a "hardcoded" note that does not actually exist in the backend server:
+```
+const getAll = () => {
+  const request = axios.get(baseUrl)
+  const nonExisting = {
+    id: 10000,
+    content: 'This note is not saved to server',
+    date: '2019-05-30T17:30:31.098Z',
+    important: true,
+  }
+  return request.then(response => response.data.concat(nonExisting))
+}
+```
+When we try to change the importance of the hardcoded note, we see the following error message in the console. The error says that the backend server responded to our HTTP PUT request with a status code 404 not found.
+*** fullstack content (image) ***
+
+The application should be able to handle these types of error situations gracefully. Users won't be able to tell that an error has actually occurred unless they happen to have their console open. The only way the error can be seen in the application is that clicking the button has no effect on the importance of the note.
+
+We had previously mentioned that a promise can be in one of three different states. When an HTTP request fails, the associated promise is rejected. Our current code does not handle this rejection in any way.
+
+The rejection of a promise is handled by providing the then method with a second callback function, which is called in the situation where the promise is rejected.
+
+The more common way of adding a handler for rejected promises is to use the catch method.
+
+In practice, the error handler for rejected promises is defined like this:
+```
+axios
+  .get('http://example.com/probably_will_fail')
+  .then(response => {
+    console.log('success!')
+  })
+  .catch(error => {
+    console.log('fail')
+  })
+```
+If the request fails, the event handler registered with the catch method gets called.
+
+The catch method is often utilized by placing it deeper within the promise chain.
+
+When our application makes an HTTP request, we are in fact creating a promise chain:
+```
+axios
+  .put(`${baseUrl}/${id}`, newObject)
+  .then(response => response.data)
+  .then(changedNote => {
+    // ...
+  })
+```
+The catch method can be used to define a handler function at the end of a promise chain, which is called once any promise in the chain throws an error and the promise becomes rejected.
+```
+axios
+  .put(`${baseUrl}/${id}`, newObject)
+  .then(response => response.data)
+  .then(changedNote => {
+    // ...
+  })
+  .catch(error => {
+    console.log('fail')
+  })
+```
+Let's use this feature and register an error handler in the App component:
+```
+const toggleImportanceOf = id => {
+  const note = notes.find(n => n.id === id)
+  const changedNote = { ...note, important: !note.important }
+
+  noteService
+    .update(id, changedNote).then(returnedNote => {
+      setNotes(notes.map(note => note.id !== id ? note : returnedNote))
+    })
+    .catch(error => {      alert(        `the note '${note.content}' was already deleted from server`      )      setNotes(notes.filter(n => n.id !== id))    })}
+```
+The error message is displayed to the user with the trusty old alert dialog popup, and the deleted note gets filtered out from the state.
+
+Removing an already deleted note from the application's state is done with the array filter method, which returns a new array comprising only of the items from the list for which the function that was passed as a parameter returns true for:
+```
+notes.filter(n => n.id !== id)
+```
+It's probably not a good idea to use alert in more serious React applications. We will soon learn a more advanced way of displaying messages and notifications to users. There are situations, however, where a simple, battle-tested method like alert can function as a starting point. A more advanced method could always be added in later, given that there's time and energy for it.
+
+The code for the current state of our application can be found in the part2-6 branch on GitHub.
