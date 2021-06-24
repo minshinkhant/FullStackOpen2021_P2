@@ -35,11 +35,13 @@ We create a new object for the note but omit the id property, since it's better 
 The object is sent to the server using the axios post method. The registered event handler logs the response that is sent back from the server to the console.
 
 When we try to create a new note, the following output pops up in the console:
+
 **fullstack content (image)**
 
 The newly created note resource is stored in the value of the data property of the response object.
 
 Sometimes it can be useful to inspect HTTP requests in the Network tab of Chrome developer tools, which was used heavily at the beginning of part 0:
+
 **fullstack content(image)**
 
 We can use the inspector to check that the headers sent in the POST request are what we expected them to be, and that their values are correct.
